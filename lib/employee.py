@@ -1,4 +1,3 @@
-# lib/employee.py
 from __init__ import CURSOR, CONN
 from department import Department
 
@@ -127,6 +126,8 @@ class Employee:
     @classmethod
     def create(cls, name, job_title, department_id):
         """ Initialize a new Employee instance and save the object to the database """
+        if not Department.find_by_id(department_id):
+            raise ValueError("Department ID not found")
         employee = cls(name, job_title, department_id)
         employee.save()
         return employee
@@ -179,7 +180,7 @@ class Employee:
         sql = """
             SELECT *
             FROM employees
-            WHERE name is ?
+            WHERE name = ?
         """
 
         row = CURSOR.execute(sql, (name,)).fetchone()
@@ -187,4 +188,10 @@ class Employee:
 
     def reviews(self):
         """Return list of reviews associated with current employee"""
-        pass
+        from review import Review  # avoid circular import issue
+        sql = """
+            SELECT * FROM reviews
+            WHERE employee_id = ?
+        """
+        rows = CURSOR.execute(sql, (self.id,)).fetchall()
+        return [Review.instance_from_db(row) for row in rows]
